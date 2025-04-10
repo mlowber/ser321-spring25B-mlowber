@@ -1,8 +1,6 @@
-// set as java application
-apply plugin: 'application'
-
-//define main class
-mainClassName = 'Concentration'
+plugins {
+    id 'application'
+}
 
 repositories {
     mavenCentral()
@@ -12,22 +10,33 @@ dependencies {
     implementation group: 'org.json', name: 'json', version: '20200518'
 }
 
-task runClient(type: JavaExec) {
-  group 'gui'
-  description 'Displays a GUI for a game of concentration'
+// Optional default
+mainClassName = 'Assign32starter.SockServer'
 
-  classpath = sourceSets.main.runtimeClasspath
+// runServer with dynamic port
+task runServer(type: JavaExec) {
+    group = 'application'
+    description = 'Runs the SockServer with configurable port.'
 
-  main = 'Assign32starter.ClientGui'
-  standardInput = System.in
-  args "1"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('Assign32starter.SockServer')
+
+    // Use -Pport=8888 or default to 8888
+    def port = project.hasProperty('port') ? project.port : '8888'
+    args port
 }
 
-task runServer(type: JavaExec) {
-  group 'gui'
-  description 'Displays a GUI for a game of concentration'
+// runClient with dynamic host and port
+task runClient(type: JavaExec) {
+    group = 'application'
+    description = 'Runs the Client GUI with configurable host and port.'
 
-  classpath = sourceSets.main.runtimeClasspath
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('Assign32starter.ClientGui')
 
-  main = 'Assign32starter.SockServer'
+    def host = project.hasProperty('host') ? project.host : 'localhost'
+    def port = project.hasProperty('port') ? project.port : '8888'
+    args host, port
+
+    standardInput = System.in
 }

@@ -1,94 +1,109 @@
-# Assignment 3 Starter Code
+# Movie Guessing Game (Client-Server)
 
-## Grid Image Maker Usage
+This is a simple Java-based client-server game where a single player guesses movie titles based on pixelated images. The server manages game logic, timing, image delivery, and a persistent leaderboard. The client receives images and responds with guesses or commands like "next", "skip", or "remaining".
 
-### Terminal
+---
 
+## Requirements Checklist
+
+| Feature | Implemented |
+|--------|-------------|
+| Gradle run commands | Yes |
+| `start` → Server says hello | Yes |
+| `name` → Server greets user | Yes |
+| Main menu: play, leaderboard, quit | Yes |
+| Length selection: short/medium/long | Yes |
+| Server sends base64-encoded images | Yes |
+| Guess validation on server | Yes |
+| Image difficulty increases with "next" | Yes |
+| "skip" works with limited use | Yes |
+| "remaining" shows skips left | Yes |
+| Timer-based game ending | Yes |
+| Score calculation | Yes |
+| Leaderboard display | Yes |
+| Leaderboard persistence to `leaderboard.json` | Yes |
+| JSON protocol with header & payload | Yes |
+| Robust error handling | Yes |
+| Graceful quit with image | Yes |
+| Port configurable via command-line args | Yes |
+
+---
+
+## Protocol Specification
+
+Each message is a JSON object sent over a TCP socket.
+Messages have a `type` (header) and optional `value`, `message`, `score`, `leaderboard`, or `image` fields (payload).
+
+### Request Flow
+
+start → name → choice → length → guess/next/skip/remaining
+
+### Request Types
+
+| Type | Client Sends | Server Responds |
+|------|--------------|-----------------|
+| `start` | — | `"type": "hello"`, ask for name, send welcome image |
+| `name` | `"value": <username>` | Welcome message, menu image |
+| `choice` | `"value": play/leaderboard/quit` | Menu response or leaderboard |
+| `length` | `"value": short/medium/long` | Starts timer, sends first image |
+| `guess` | `"value": <title>` | Correct/incorrect response, image update |
+| `next` | — | Higher resolution image, or message if max clarity |
+| `skip` | — | New movie, or error if no skips left |
+| `remaining` | — | Skips remaining count |
+| `timeout` | — | Final score, return to menu |
+| `error` | Malformed or unexpected input | JSON with `"type": "error"` and message |
+
+### Response Fields
+
+- `type`: Always present. Indicates message purpose.
+- `value`: Message string shown to user.
+- `message`: Optional additional message.
+- `image`: Base64-encoded PNG image.
+- `imageFormat`: Always `"png"`.
+- `leaderboard`: JSONArray with name/score pairs.
+- `score`: Sent on timeout or game end.
+
+---
+
+## Robustness
+
+- Handles malformed JSON with graceful errors.
+- Commands validated on the server to prevent crashes.
+- Persistent game state resets when needed (e.g., after leaderboard or timeout).
+- Images are base64-encoded dynamically and safely transmitted.
+- Leaderboard is written to disk after every new high score.
+- Supports changing port via CLI args: `java SockServer 9000` and `java ClientGui localhost 9000`.
+
+---
+
+## What would change if UDP was used?
+
+If UDP replaced TCP:
+- Reliability would no longer be guaranteed.
+- We'd need manual acknowledgment and retry logic.
+- Image transmission would require fragmentation or compression.
+- Sequence numbers or timestamps would be needed to track state.
+- Simpler interactions like guesses could work, but file/image transfers would be fragile.
+
+---
+
+## Demo Video
+
+Link: _https://youtu.be/Uv0YBEHsEXE_  
+Length: 4–7 minutes
+
+---
+
+## Leaderboard File
+
+Scores are stored in `leaderboard.json` on the server. They are updated after each correct guess or game end.
+
+Example format:
+
+```json
+{
+  "Alice": 266.66,
+  "Bob": 150.00
+}
 ```
-gradle runServer
-```
-
-```
-gradle runClient
-```
-
-## GUI Usage
-
-### Code
-
-1. Create an instance of the GUI
-
-   ```
-   ClientGui main = new ClientGui();
-   ```
-
-2. Create a new game and give it a grid dimension
-
-   ```
-   // the pineapple example is 2, but choose whatever dimension of grid you want
-   // you can change the dimension to see how the grid changes size
-   main.newGame(2); 
-   ```
-
-*Depending on how you want to run the system, 3 and 4 can be run how you want*
-
-3. Insert image
-
-   ```
-   // the filename is the path to an image
-   // the first coordinate(0) is the row to insert in to
-   // the second coordinate(1) is the column to insert in to
-   // you can change coordinates to see the image move around the box
-   main.insertImage("img/Pineapple-Upside-down-cake_0_1.jpg", 0, 1);
-   ```
-
-4. Show GUI
-
-   ```
-   // true makes the dialog modal meaning that all interaction allowed is 
-   //   in the windows methods.
-   // false makes the dialog a pop-up which allows the background program 
-   //   that spawned it to continue and process in the background.
-   main.show(true);
-   ```
-
-For the images: The numbering is alwas starting at 1 which is the "main" view, increasing numbers are always turning to the right. So 2 is a 90 degree right turn of 1, while 4 is a 90 degree left turn of 1. 
-
-### ClientGui.java
-#### Summary
-
-> This is the main GUI to display the picture grid. 
-
-#### Methods
-  - show(boolean modal) :  Shows the GUI frame with the current state
-     * NOTE: modal means that it opens the GUI and suspends background processes. Processing still happens in the GUI If it is desired to continue processing in the background, set modal to false.
-   * newGame(int dimension) :  Start a new game with a grid of dimension x dimension size
-   * insertImage(String filename, int row, int col) :  Inserts an image into the grid, this is when you know the file name, use the PicturePanel insertImage if you have a ByteStream
-   * appendOutput(String message) :  Appends text to the output panel
-   * submitClicked() :  Button handler for the submit button in the output panel
-
-### PicturePanel.java
-
-#### Summary
-
-> This is the image grid
-
-#### Methods
-
-- newGame(int dimension) :  Reset the board and set grid size to dimension x dimension
-- insertImage(String fname, int row, int col) :  Insert an image at (col, row)
-- insertImage(ByteArrayInputStream fname, int row, int col) :  Insert an image at (col, row)
-
-### OutputPanel.java
-
-#### Summary
-
-> This is the input box, submit button, and output text area panel
-
-#### Methods
-
-- getInputText() :  Get the input text box text
-- setInputText(String newText) :  Set the input text box text
-- addEventHandlers(EventHandlers handlerObj) :  Add event listeners
-- appendOutput(String message) :  Add message to output text
-
+---
