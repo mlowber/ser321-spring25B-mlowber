@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="QuizGameTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2025-04-10T00:40:48" hostname="DESKTOP-QIIQ3VK" time="0.017">
+  <properties/>
+  <testcase name="testPlayGame" classname="QuizGameTest" time="0.015"/>
+  <testcase name="testIncorrectAnswer" classname="QuizGameTest" time="0.001"/>
+  <testcase name="testCorrectAnswer" classname="QuizGameTest" time="0.001"/>
+  <testcase name="testAddQuestion" classname="QuizGameTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
