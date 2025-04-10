@@ -93,6 +93,8 @@ public class SockServer {
             res = addmany(req);
           } else if (req.getString("type").equals("quizgame")) {
             res = handleQuizGame(req);
+          } else if (req.getString("type").equals("stringconcatenation")) {
+            res = stringConcatenation(req);
           } else {
             res = wrongType(req);
           }
@@ -171,6 +173,31 @@ public class SockServer {
       res.put("message", "Error processing quizgame request: " + e.getMessage());
       return res;
     }
+  }
+
+  static JSONObject stringConcatenation(JSONObject req) {
+    System.out.println("String concatenation request: " + req.toString());
+
+    JSONObject res1 = testField(req, "string1");
+    if (!res1.getBoolean("ok")) return res1;
+
+    JSONObject res2 = testField(req, "string2");
+    if (!res2.getBoolean("ok")) return res2;
+
+    JSONObject res = new JSONObject();
+    res.put("ok", true);
+    res.put("type", "stringconcatenation");
+
+    try {
+      String s1 = req.getString("string1");
+      String s2 = req.getString("string2");
+      res.put("result", s1 + s2);
+    } catch (Exception e) {
+      res.put("ok", false);
+      res.put("message", "string1 and string2 must be strings");
+    }
+
+    return res;
   }
 
   /**

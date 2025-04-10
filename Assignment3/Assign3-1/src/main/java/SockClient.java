@@ -74,7 +74,42 @@ class SockClient {
             json.put("type", "addmany");
             json.put("nums", array);
             break;
-            // TODO: add the other cases
+          case 4:
+            System.out.println("Enter first string:");
+            String s1 = scanner.nextLine();
+            System.out.println("Enter second string:");
+            String s2 = scanner.nextLine();
+
+            json.put("type", "stringconcatenation");
+            json.put("string1", s1);
+            json.put("string2", s2);
+            break;
+
+          case 5:
+            System.out.print("Enter quiz command (add/get/answer): ");
+            String quizCmd = scanner.nextLine().trim();
+
+            json.put("type", "quizgame");
+
+            if (quizCmd.equalsIgnoreCase("add")) {
+              json.put("addQuestion", true);
+              System.out.print("Enter question: ");
+              String q = scanner.nextLine();
+              json.put("question", q);
+              System.out.print("Enter answer: ");
+              String a = scanner.nextLine();
+              json.put("answer", a);
+            } else if (quizCmd.equalsIgnoreCase("get")) {
+              json.put("addQuestion", false);
+            } else if (quizCmd.equalsIgnoreCase("answer")) {
+              System.out.print("Enter your answer: ");
+              String a = scanner.nextLine();
+              json.put("answer", a);
+            } else {
+              System.out.println("Invalid quiz command.");
+              continue; // skip sending invalid request
+            }
+            break;
         }
         if(!requesting) {
           continue;
@@ -91,14 +126,21 @@ class SockClient {
         String i = (String) in.readUTF();
         JSONObject res = new JSONObject(i);
         System.out.println("Got response: " + res);
-        if (res.getBoolean("ok")){
-          if (res.getString("type").equals("echo")) {
-            System.out.println(res.getString("echo"));
-          } else {
-            System.out.println(res.getInt("result"));
+        if (res.getBoolean("ok")) {
+          if (res.has("echo")) {
+            System.out.println("Echoed: " + res.getString("echo"));
+          }
+          if (res.has("result")) {
+            System.out.println("Result: " + res.get("result"));
+          }
+          if (res.has("question")) {
+            System.out.println("Question: " + res.getString("question"));
+          }
+          if (res.has("type")) {
+            System.out.println("Type: " + res.getString("type"));
           }
         } else {
-          System.out.println(res.getString("message"));
+          System.out.println("Error: " + res.getString("message"));
         }
       }
       // want to keep requesting services so don't close connection
