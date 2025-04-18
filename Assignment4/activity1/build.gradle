@@ -1,0 +1,74 @@
+apply plugin: 'application'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation group: 'org.json', name: 'json', version: '20200518'
+}
+
+//define main class (not directly used for tasks)
+mainClassName = 'Concentration'
+
+// Task 1 (single-threaded server)
+task runServer(type: JavaExec) {
+  group 'server'
+  description 'Runs the single-threaded Server (Task 1)'
+  classpath = sourceSets.main.runtimeClasspath
+  main = 'taskone.Server'
+  standardInput = System.in
+
+  // default port=8000 if not provided
+  def p = project.hasProperty('port') ? project.getProperty('port') : '8000'
+  args(p)
+}
+
+// Client task
+task runClient(type: JavaExec) {
+  group 'client'
+  description 'Runs the Client with default host=localhost, port=8000'
+  classpath = sourceSets.main.runtimeClasspath
+  standardInput = System.in
+  main = 'taskone.Client'
+
+  // default host=localhost, port=8000
+  def h = project.hasProperty('host') ? project.getProperty('host') : 'localhost'
+  def p = project.hasProperty('port') ? project.getProperty('port') : '8000'
+  args(h, p)
+}
+
+// Task 1 alias
+// Usage: gradle runTask1 [-Pport=<port>]
+task runTask1(type: JavaExec) {
+  group 'server'
+  description 'Alias for running the single-threaded Server (Task 1)'
+  classpath = sourceSets.main.runtimeClasspath
+  main = 'taskone.Server'
+  def p = project.hasProperty('port') ? project.getProperty('port') : '8000'
+  args(p)
+}
+
+// Task 2: Unbounded multi-threaded server
+// Usage: gradle runTask2 [-Pport=<port>]
+task runTask2(type: JavaExec) {
+  group 'server'
+  description 'Runs the unbounded ThreadedServer (Task 2)'
+  classpath = sourceSets.main.runtimeClasspath
+  main = 'taskone.ThreadedServer'
+  def p = project.hasProperty('port') ? project.getProperty('port') : '8000'
+  args(p)
+}
+
+// Task 3: Bounded ThreadPool server
+// Usage: gradle runTask3 [-Pport=<port>] [-PmaxThreads=<num>]
+task runTask3(type: JavaExec) {
+  group 'server'
+  description 'Runs the bounded ThreadPoolServer (Task 3)'
+  classpath = sourceSets.main.runtimeClasspath
+  main = 'taskone.ThreadPoolServer'
+
+  def p = project.hasProperty('port') ? project.getProperty('port') : '8000'
+  def m = project.hasProperty('maxThreads') ? project.getProperty('maxThreads') : '4'
+  args(p, m)
+}
