@@ -28,7 +28,7 @@ This activity implements four operations over TCP/JSON:
   ```json
   {
     "type": "<add|display|count|quit>",
-    "data": <String|int|null>
+    "data": "<String|int|null>"
   }
   ```
 - **Error**:
