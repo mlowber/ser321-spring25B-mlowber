@@ -13,8 +13,8 @@ This activity implements four operations over TCP/JSON:
 ### Requests
 ```json
 {
-  "selected": <int: 1=add, 3=display, 4=count, 0=quit>,
-  "data":     <depends on operation>
+  "selected": "<int: 1=add, 3=display, 4=count, 0=quit>",
+  "data":     "<depends on operation>"
 }
 ```
 - **data**
@@ -28,7 +28,7 @@ This activity implements four operations over TCP/JSON:
   ```json
   {
     "type": "<add|display|count|quit>",
-    "data": <String|int|null>
+    "data": "<String|int|null>"
   }
   ```
 - **Error**:
