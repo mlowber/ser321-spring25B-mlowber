@@ -1,0 +1,99 @@
+plugins {
+    id 'java'
+    id 'application'
+    id "com.google.protobuf" version "0.8.13"
+}
+
+description = "Protocol Buffers Socket Example"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.json:json:20200518'
+    implementation 'com.google.protobuf:protobuf-java:3.18.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.0'
+}
+
+application {
+    // default main—used if you run `gradle run`
+    mainClassName = 'server.SockBaseServer'
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.21.1'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java { }
+            }
+        }
+    }
+}
+
+// include both handwritten and generated sources
+sourceSets {
+    main {
+        java {
+            srcDirs = [
+                    'src/main/java',
+                    'build/generated/source/proto/main/java'
+            ]
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()  // JUnit 5
+}
+
+// defaults
+def defaultHost = 'localhost'
+def defaultPort = 8000
+
+// run the client: SockBaseClient <host> <port>
+task runClient(type: JavaExec) {
+    group       = 'application'
+    description = 'Launches the Sudoku client'
+    classpath   = sourceSets.main.runtimeClasspath
+    main        = 'client.SockBaseClient'
+    standardInput = System.in
+
+    // pick up -Phost/-Pport or fall back
+    doFirst {
+        def h = project.findProperty('host') ?: defaultHost
+        def p = project.findProperty('port') ?: defaultPort
+        args = [h, p.toString()]
+    }
+}
+
+// run the server in normal (non‑grading) mode: SockBaseServer <port> false
+task runServer(type: JavaExec) {
+    group       = 'application'
+    description = 'Launches the Sudoku server (normal mode)'
+    classpath   = sourceSets.main.runtimeClasspath
+    main        = 'server.SockBaseServer'
+
+    doFirst {
+        def p = project.findProperty('port') ?: defaultPort
+        args = [ p.toString(), 'false' ]
+    }
+}
+
+// run the server in grading mode: SockBaseServer <port> true
+task runServerGrading(type: JavaExec) {
+    group       = 'application'
+    description = 'Launches the Sudoku server (grading mode)'
+    classpath   = sourceSets.main.runtimeClasspath
+    main        = 'server.SockBaseServer'
+
+    doFirst {
+        def p = project.findProperty('port') ?: defaultPort
+        args = [ p.toString(), 'true' ]
+    }
+}
