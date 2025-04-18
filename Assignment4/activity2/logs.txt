@@ -34,3 +34,17 @@
 -Fri Apr 18 00:03:59 MST 2025: Matthew - START
 /Fri Apr 18 00:06:29 MST 2025: Matthew - CONNECT
 -Fri Apr 18 00:06:33 MST 2025: Matthew - START
+/Fri Apr 18 00:10:57 MST 2025: Matthew - CONNECT
+-Fri Apr 18 00:11:02 MST 2025: Matthew - START
++Fri Apr 18 00:11:56 MST 2025: Matthew - WIN
+-Fri Apr 18 00:12:19 MST 2025: Matthew - START
+/Fri Apr 18 00:12:55 MST 2025: Matthew - CONNECT
+-Fri Apr 18 00:13:05 MST 2025: Matthew - START
++Fri Apr 18 00:13:22 MST 2025: Matthew - WIN
+-Fri Apr 18 00:14:09 MST 2025: Steve - CONNECT
++Fri Apr 18 00:14:22 MST 2025: Steve - START
+)Fri Apr 18 00:14:58 MST 2025: Steve - WIN
+-Fri Apr 18 00:15:22 MST 2025: Steve - CONNECT
++Fri Apr 18 00:15:29 MST 2025: Steve - START
+)Fri Apr 18 00:15:57 MST 2025: Steve - WIN
+,Fri Apr 18 00:16:30 MST 2025: Fred - CONNECT
