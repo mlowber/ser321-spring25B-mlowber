@@ -29,9 +29,10 @@ Now you can run the client and server, please follow these instructions to start
   * Hasn't happened to me but, I wanted to make a note just in case someone comes across this!
 
 ## Screencast
+https://youtu.be/9aFPrwpMg7g
 
 # Readme checklist:
-
+n/a
 
 # Requirements (If checked off then completed and includes debugging)
-- 
+- All requirements fulfilled :)
