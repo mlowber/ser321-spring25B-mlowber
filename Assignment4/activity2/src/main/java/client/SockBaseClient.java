@@ -52,14 +52,31 @@ class SockBaseClient {
                         System.out.println(response.getMessage());
                         req = chooseMenu(req, response);
                         break;
+                    case LEADERBOARD:
+                        System.out.println(response.toString());
+                        req = chooseMenu(req, response);
+                        break;
+                    case START:
+                        System.out.println(response.getBoard());
+                        System.out.println(response.getMenuoptions());
+                        Response endResp = handleInGame(in, out);
+                        req = chooseMenu(Request.newBuilder(), endResp);
+                        break;
+                    case BYE:
+                        System.out.println(response.getMessage());
+                        exitAndClose(in, out, serverSock);
+                        return;
                     case ERROR:
                         System.out.println("Error: " + response.getMessage() + "Type: " + response.getErrorType());
                         if (response.getNext() == 1) {
                             req = nameRequest();
                         } else {
-                            System.out.println("That error type is not handled yet");
-                            req = nameRequest();
+                            req = chooseMenu(req, response);
                         }
+                        break;
+                    default:
+                        System.out.println("Unhandled response type: " + response.getResponseType());
+                        req = chooseMenu(req, response);
                         break;
                 }
                 req.build().writeDelimitedTo(out);
@@ -68,6 +85,80 @@ class SockBaseClient {
             e.printStackTrace();
         } finally {
             exitAndClose(in, out, serverSock);
+        }
+    }
+
+    /**
+     * Runs the play/clear loop until the game ends (WON or BYE),
+     * then returns that final Response so the main menu can be shown correctly.
+     */
+    static Response handleInGame(InputStream in, OutputStream out) throws IOException {
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
+
+        while (true) {
+            System.out.print("Enter move (row col val), c to clear, r for new board, or exit: ");
+            String line = stdin.readLine().trim();
+            Request.Builder reqB = Request.newBuilder();
+
+            if (line.equalsIgnoreCase("exit")) {
+                reqB.setOperationType(Request.OperationType.QUIT);
+
+            } else if (line.equalsIgnoreCase("r")) {
+                // RESET_BOARD
+                reqB.setOperationType(Request.OperationType.CLEAR)
+                        .setRow(-1)        // sentinel
+                        .setColumn(-1)
+                        .setValue(6);      // CLEAR code 6 == RESET_BOARD
+
+            } else if (line.equalsIgnoreCase("c")) {
+                // CLEAR_VALUE of a single cell
+                System.out.print("Row to clear (1-9): ");
+                int r = Integer.parseInt(stdin.readLine());
+                System.out.print("Column to clear (1-9): ");
+                int c = Integer.parseInt(stdin.readLine());
+
+                reqB.setOperationType(Request.OperationType.CLEAR)
+                        .setRow(r)         // leave 1–9 here; we’ll subtract in server
+                        .setColumn(c)
+                        .setValue(1);      // CLEAR_VALUE
+
+            } else {
+                // PLAY/UPDATE
+                String[] parts = line.split("\\s+");
+                int r = Integer.parseInt(parts[0]);
+                int c = Integer.parseInt(parts[1]);
+                int v = Integer.parseInt(parts[2]);
+                reqB.setOperationType(Request.OperationType.UPDATE)
+                        .setRow(r)
+                        .setColumn(c)
+                        .setValue(v);
+            }
+
+            // send…
+            reqB.build().writeDelimitedTo(out);
+
+            // …and receive
+            Response resp = Response.parseDelimitedFrom(in);
+            switch (resp.getResponseType()) {
+                case PLAY:
+                    System.out.println(resp.getBoard());
+                    System.out.println("Points: " + resp.getPoints());
+                    System.out.println(resp.getMenuoptions());
+                    break;
+                case WON:
+                    System.out.println(resp.getBoard());
+                    System.out.println(resp.getMessage());
+                    return resp;
+                case BYE:
+                    return resp;
+                case ERROR:
+                    System.out.println("Error: " + resp.getMessage());
+                    System.out.println(resp.getMenuoptions());
+                    break;
+                default:
+                    System.out.println("Unexpected response: " + resp.getResponseType());
+                    break;
+            }
         }
     }
 
@@ -97,9 +188,30 @@ class SockBaseClient {
             String menu_select = stdin.readLine();
             System.out.println(menu_select);
             switch (menu_select) {
-                // needs to include the other requests
+                case "1":
+                    // View leaderboard
+                    req.setOperationType(Request.OperationType.LEADERBOARD);
+                    return req;
                 case "2":
-                    req.setOperationType(Request.OperationType.START); // this is not a complete START request!! Just as example
+                    // Start a new game
+                    // Prompt for difficulty
+                    System.out.print("Enter difficulty (1-20, 1 easy -> 20 hardest): ");
+                    int diff;
+                    while (true) {
+                        try {
+                            diff = Integer.parseInt(stdin.readLine());
+                            if (diff < 1 || diff > 20) throw new NumberFormatException();
+                            break;
+                        } catch (NumberFormatException nfe) {
+                            System.out.print("Invalid. Please enter an integer 1–20: ");
+                        }
+                    }
+                    req.setOperationType(Request.OperationType.START)
+                            .setDifficulty(diff);
+                    return req;
+                case "3":
+                    // Quit
+                    req.setOperationType(Request.OperationType.QUIT);
                     return req;
                 default:
                     System.out.println("\nNot a valid choice, please choose again");

@@ -5,6 +5,8 @@ import buffers.RequestProtos.Message;
 import buffers.RequestProtos.Logs;
 import buffers.ResponseProtos.Response;
 import buffers.ResponseProtos.Entry;
+import buffers.ResponseProtos.Response.EvalType;
+import buffers.RequestProtos.Request.OperationType;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -12,6 +14,12 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 class SockBaseServer {
     static String logFilename = "logs.txt";
@@ -21,7 +29,8 @@ class SockBaseServer {
     static String gameOptions = "\nChoose an action: \n (1-9) - Enter an int to specify the row you want to update \n c - Clear number \n r - New Board";
 
     // track each player’s points and login count
-    private static class LeaderEntry {
+    private static class LeaderEntry implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
         int points  = 0;
         int logins  = 0;
     }
@@ -55,6 +64,28 @@ class SockBaseServer {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static void loadLeaderboard() {
+        File f = new File("leaderboard.dat");
+        if (!f.exists()) return;
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(f))) {
+            Map<String, LeaderEntry> disk = (Map<String, LeaderEntry>) in.readObject();
+            leaderboardMap.putAll(disk);
+            System.out.println("Loaded leaderboard from disk: " + leaderboardMap.keySet());
+        } catch (Exception e) {
+            System.err.println("Failed to load leaderboard: " + e.getMessage());
+        }
+    }
+
+    private static void saveLeaderboard() {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("leaderboard.dat"))) {
+            // serialize a plain HashMap to avoid ConcurrentHashMap quirks
+            out.writeObject(new HashMap<>(leaderboardMap));
+        } catch (IOException e) {
+            System.err.println("Failed to save leaderboard: " + e.getMessage());
+        }
+    }
+
     /**
      * Received a request, starts to evaluate what it is and handles it, not complete
      */
@@ -81,8 +112,13 @@ class SockBaseServer {
                         response = leaderboardRequest(op);
                         break;
                     case START:
-                        response = startGame(op); // not complete!
-
+                        response = startGame(op);
+                        break;
+                    case UPDATE:
+                        response = playRequest(op);
+                        break;
+                    case CLEAR:
+                        response = clearRequest(op);
                         break;
                     case QUIT:
                         response = quit();
@@ -135,6 +171,7 @@ class SockBaseServer {
                 return old;
             }
         });
+        saveLeaderboard();
 
         writeToLog(name, Message.CONNECT);
         currentState = 2;
@@ -170,17 +207,165 @@ class SockBaseServer {
     }
 
     /**
-     * Starts to handle start of a game after START request, is not complete of course, just shows how to get to the board
+     * Handles the START request: spins up a new game at the requested difficulty,
+     * or returns an error if difficulty is out of range.
      */
     private Response startGame(Request op) throws IOException {
+        writeToLog(name, Message.START);
+        int difficulty = op.getDifficulty();             // read client’s choice
+        System.out.println("Starting new game with difficulty " + difficulty);
 
-        System.out.println("start game");
+        if (difficulty <1 || difficulty > 20) {
+            return Response.newBuilder()
+                    .setResponseType(Response.ResponseType.ERROR)
+                    .setErrorType(5)
+                    .setMessage("Error: difficulty is out of range")
+                    .setMenuoptions(menuOptions)
+                    .setNext(2)
+                    .build();
+        }
 
-        game.newGame(grading, 4); // difficulty should be read from request!
-
-        System.out.println(game.getDisplayBoard());
+        game.newGame(grading, difficulty);               // use it here
+        String boardStr = game.getDisplayBoard();        // initial board
 
         return Response.newBuilder()
+                .setResponseType(Response.ResponseType.START)
+                .setBoard(boardStr)
+                .setMessage("\n")
+                .setMenuoptions(gameOptions)                 // the in-game menu
+                .setNext(3)                                  // 3 = client should use in-game menu next
+                .build();
+    }
+
+    /**
+     * Handles a PLAY request (placing a number).
+     */
+    private Response playRequest(Request op) {
+        int row = op.getRow();
+        int col = op.getColumn();
+        int val = op.getValue();
+
+        // convert from 1-based to 0-based for Game logic
+        row -= 1;
+        col -= 1;
+
+        if (row < 0 || row > 8 || col < 0 || col > 8) {
+            return Response.newBuilder()
+                    .setResponseType(Response.ResponseType.ERROR)
+                    .setErrorType(3)
+                    .setMessage("Error: row or column out of bounds")
+                    .setMenuoptions(gameOptions)
+                    .setNext(3)
+                    .build();
+        }
+
+        // type=0 means "UPDATE" in Game.updateBoard
+        int rawResult = game.updateBoard(row, col, val, 0);
+        EvalType result = Response.EvalType.forNumber(rawResult);
+        if (rawResult == 2 || rawResult == 3 || rawResult == 4 || rawResult == 1) {
+            game.setPoints(-2);
+        }
+
+        String board = game.getDisplayBoard();
+        int pts     = game.getPoints();
+
+        Response.Builder b = Response.newBuilder()
+                .setResponseType(Response.ResponseType.PLAY)
+                .setBoard(board)
+                .setType(result)
+                .setPoints(pts)
+                .setMenuoptions(gameOptions)
+                .setNext(3);
+
+        // if the move filled the last X…
+        if (game.checkWon()) {
+            game.setPoints(+20);
+            writeToLog(name, Message.WIN);
+
+            leaderboardMap.compute(name, (k, e) -> {
+                e.points += game.getPoints();
+                return e;
+            });
+            saveLeaderboard();
+
+            b.setResponseType(Response.ResponseType.WON)
+                    .setMessage("You solved the current puzzle, good job!")
+                    .setMenuoptions(menuOptions)
+                    .setNext(2)
+                    .setType(EvalType.UPDATE)
+                    .setPoints(game.getPoints());
+        }
+        return b.build();
+    }
+
+    /**
+     * Handles a CLEAR request (clearing cell/row/col/grid/board).
+     */
+    private Response clearRequest(Request op) {
+        int row       = op.getRow();
+        int col       = op.getColumn();
+        int clearCode = op.getValue();  // 1 = value, 2 = row, 3 = col, 4 = grid, 5 = board, 6 = new board
+
+        // Validate parameters based on clearCode
+        boolean invalid = false;
+
+        switch (clearCode) {
+            case 1: // clear value
+            case 2: // clear row
+                if (row < 1 || row > 9) invalid = true;
+                break;
+            case 3: // clear column
+                if (col < 1 || col > 9) invalid = true;
+                break;
+            case 4: // clear grid
+                if (row < 1 || row > 9) invalid = true; // row is used as grid ID
+                break;
+            case 5: // clear board
+            case 6: // new board
+                // no validation needed, row and col can be -1
+                break;
+            default:
+                return Response.newBuilder()
+                        .setResponseType(Response.ResponseType.ERROR)
+                        .setErrorType(0)
+                        .setMessage("Error: unknown clear code")
+                        .setMenuoptions(gameOptions)
+                        .setNext(3)
+                        .build();
+        }
+
+        if (invalid) {
+            return Response.newBuilder()
+                    .setResponseType(Response.ResponseType.ERROR)
+                    .setErrorType(3)
+                    .setMessage("Error: row or column out of bounds for clear operation")
+                    .setMenuoptions(gameOptions)
+                    .setNext(3)
+                    .build();
+        }
+
+        if (row > 0) row -= 1;
+        if (col > 0) col -= 1;
+
+        int rawResult = game.updateBoard(row, col, 0, clearCode);
+        EvalType result = Response.EvalType.forNumber(rawResult);
+        game.setPoints(-5);
+        leaderboardMap.compute(name, (k, e) -> {
+            e.points = game.getPoints();
+            return e;
+        });
+        saveLeaderboard();
+
+        String board = game.getDisplayBoard();
+        int pts      = game.getPoints();
+
+        return Response.newBuilder()
+                .setResponseType(Response.ResponseType.PLAY)
+                .setBoard(board)
+                .setType(result)
+                .setPoints(pts)
+                .setMenuoptions(gameOptions)
+                .setNext(3)
                 .build();
     }
 
@@ -271,8 +456,8 @@ class SockBaseServer {
         }
     }
 
-
     public static void main (String[] args) throws Exception {
+        loadLeaderboard();
         if (args.length != 2) {
             System.out.println("Expected arguments: <port(int)> <delay(int)>");
             System.exit(1);
