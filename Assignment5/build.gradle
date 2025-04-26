@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'com.assignment5'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+}
+
+application {
+}
+
+def maybeForwardFault(JavaExec task) {
+    if (project.hasProperty('Fault')) {
+        def faultValue = project.findProperty('Fault')?.toString()
+        if (faultValue != null) {
+            task.systemProperty 'Fault', faultValue
+        }
+    }
+}
+
+tasks.register('runClient', JavaExec) {
+    group = 'application'
+    description = 'Run the Client'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('client.Client')
+    standardInput = System.in
+}
+
+tasks.register('runLeader', JavaExec) {
+    group = 'application'
+    description = 'Run the Leader'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('leader.Leader')
+}
+
+tasks.register('runNode', JavaExec) {
+    group = 'application'
+    description = 'Run a generic Node (port 6000)'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('node.Node')
+    args '6000'
+    maybeForwardFault(delegate)
+}
+
+tasks.register('runNode6000', JavaExec) {
+    group = 'application'
+    description = 'Run Node on port 6000'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('node.Node')
+    args '6000'
+    maybeForwardFault(delegate)
+}
+
+tasks.register('runNode6001', JavaExec) {
+    group = 'application'
+    description = 'Run Node on port 6001'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('node.Node')
+    args '6001'
+    maybeForwardFault(delegate)
+}
+
+tasks.register('runNode6002', JavaExec) {
+    group = 'application'
+    description = 'Run Node on port 6002'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('node.Node')
+    args '6002'
+    maybeForwardFault(delegate)
+}
