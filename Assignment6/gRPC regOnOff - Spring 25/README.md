@@ -1,61 +1,70 @@
-# GRPC Services and Registry
+# gRPC Distributed Systems Assignment
 
-The following folder contains a Registry.jar which includes a Registering service where Nodes can register to allow clients to find them and use their implemented GRPC services. 
+## 1. Project Description and Requirements Fulfilled
 
-Some more detailed explanations will follow and please also check the build.gradle file
+This project implements a gRPC-based node and client that support the following services:
 
-## Run things locally without registry
-To run see also video. To run locally and without Registry which you should do for the beginning
+* **Built-in services**: Echo, Joke, Sort, CoffeePot
+* **Custom services (Task 2)**: Key–Value Store (KVStore) and To-Do List (Todo)
 
-First Terminal
+It fulfills the assignment requirements:
 
-    gradle runNode
+* Interactive menu-driven client (Task 1)
+* Auto-run mode calling all services without registry (Task 1)
+* Two new services with server-side state (Task 2)
+* Deployment on AWS EC2 with public IP (Task 3)
 
-Second Terminal
+## 2. How to Run the Program
 
-    gradle runClient
+1. Build and generate stubs:
 
-## Run things locally with registry
+   ```bash
+   gradle clean build
+   ```
+2. Start the server (Node) locally:
 
-First terminal
+   ```bash
+   gradle runNode
+   ```
+3. Run the client in interactive mode:
 
-    gradle runRegistryServer
+   ```bash
+   gradle runClient
+   ```
+4. Run the client in auto-run mode:
 
-Second terminal
+   ```bash
+   gradle runClient -Pauto=1
+   ```
 
-    gradle runNode -PregOn=true 
+## 3. How to Use the Client How to Use the Client
 
-Third Terminal
+* After running `gradle runClient` (interactive), you will see a numbered menu.
+* Enter a number to select a service:
 
-    gradle runClient -PregOn=true
+    * **Echo**: type a message, press Enter
+    * **Joke**: getJoke asks for count; setJoke asks for text
+    * **Sort**: enter comma-separated integers
+    * **CoffeePot**: sub-menu for brew, status, getCup, or run all
+    * **KVStore**: sub-menu for put (key and value) and get (key)
+    * **To-Do List**: sub-menu for add task (text), list tasks, mark done (id)
+* Enter `0` at any menu level to go back or exit.
 
-### gradle runRegistryServer
-Will run the Registry node on localhost (arguments are possible see gradle). This node will run and allows nodes to register themselves. 
+## 4. Requirements Checklist
 
-The Server allows Protobuf, JSON and gRPC. We will only be using gRPC
+* [x] Interactive, menu-driven client (Task 1)
+* [x] Auto-run mode without registry (Task 1)
+* [x] Built-in gRPC services implemented (Task 1)
+* [x] Two custom services (KVStore, Todo) with server state (Task 2)
+* [x] Deployed on AWS EC2 with public IP and background run (Task 3)
 
-### gradle runNode
-Will run a node with an Echo and Joke service. The node registers itself on the Registry. You can change the host and port the node runs on and this will register accordingly with the Registry
+## 5. Screencast
 
-### gradle runClient
-Will run a client which will call the services from the node, it talks to the node directly not through the registry. At the end the client does some calls to the Registry to pull the services, this will be needed later.
+Include a short video demonstrating:
 
-### gradle runDiscovery
-Will create a couple of threads with each running a node with services in JSON and Protobuf. This is just an example and not needed for assignment 6. 
+1. Building and running locally
+2. Interactive menu use
+3. Auto-run mode output
+4. Remote client connecting to AWS EC2 node
 
-### gradle testProtobufRegistration
-Registers the protobuf nodes from runDiscovery and do some calls. 
-
-### gradle testJSONRegistration
-Registers the json nodes from runDiscovery and do some calls. 
-
-### gradle test
-Runs the test cases for Joke and Echo. It expects a new start of the server before running the tests!
-First run
-    gradle runNode
-then in second terminal
-    gradle test
-
-To run in IDE:
-- go about it like in the ProtoBuf assignment to get rid of errors
-- all mains expect input, so if you want to run them in your IDE you need to provide the inputs for them, see build.gradle
+Link: https://youtu.be/pclTS7yPCwI

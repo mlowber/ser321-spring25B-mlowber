@@ -202,29 +202,44 @@ public class Client {
 
     if (auto) {
       System.out.println("** AUTO-RUN mode **");
-      // Echo
+
+      // Echo: success + error (empty message)
       client.askServerToParrot("auto_test_message");
-      // Joke
+      client.askServerToParrot("");
+
+      // Joke: success + error (negative count)
       client.askForJokes(2);
+      client.askForJokes(-1);
       client.setJoke("auto_test_joke");
+      client.setJoke("");
       client.askForJokes(1);
-      // Sort
-      client.doSort(List.of(7,9,4,6,1,3,8,2,5));
-      // CoffeePot
+
+      // Sort: success + empty-list edge case
+      client.doSort(List.of(7, 3, 9, 2));
+      client.doSort(List.of());
+
+      // CoffeePot: brew twice, then getCup twice
       client.brew();
+      client.brew();               // error: Already brewing
       client.brewStatus();
       Thread.sleep(31000);
       client.getCup();
-      // KVStore
+      client.getCup();             // error: No coffee
+
+      // KVStore: put/get + missing-key
       client.putKV("foo", "bar");
       client.getKV("foo");
-      client.getKV("missing");
-      // To-Do
+      client.getKV("missing");     // error: Key not found
+
+      // To-Do List: add/list/mark + bad-id
       client.addTask("auto_task1");
       client.listTasks();
       client.markDone(1);
       client.listTasks();
+      client.markDone(999);        // error: No task with id 999
+      client.listTasks();
 
+      // Clean shutdown
       channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
       if (regOn) regChannel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
       return;
