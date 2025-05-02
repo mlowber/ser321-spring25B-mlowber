@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package services;
+
+option java_multiple_files = true;
+option java_package = "service";
+option java_outer_classname = "KVStoreProto";
+
+// Key-Value Store service
+service KVStore {
+  // Store a key-value pair
+  rpc Put (KVPutRequest) returns (KVPutResponse) {}
+  // Retrieve a value by key
+  rpc Get (KVGetRequest) returns (KVGetResponse) {}
+}
+
+// Request message for storing a key-value pair
+message KVPutRequest {
+  string key = 1;
+  string value = 2;
+}
+
+// Response for Put: success or error message
+message KVPutResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// Request message for retrieving a value
+message KVGetRequest {
+  string key = 1;
+}
+
+// Response for Get: indicates if key was found, the value, or an error
+message KVGetResponse {
+  bool found = 1;
+  string value = 2;
+  string error = 3;
+}
